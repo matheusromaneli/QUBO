@@ -10,20 +10,6 @@ function r1(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
     edges_vars = length(possible_edges)
     for t_index =1:n_tess
         init = (t_index-1) * edges_vars
-        for a1_index =1:edges_vars
-            for a2_index =a1_index+1:edges_vars
-                a1 = possible_edges[a1_index]
-                a2 = possible_edges[a2_index]
-                if has_common(a1,a2)
-                    #Penalidade por escolher 2 arestas em comum
-                    Q[init+a1_index][init+a2_index] = p/2
-                    Q[init+a2_index][init+a1_index] = p/2
-                else
-                    Q[init+a1_index][init+a2_index] = -p/2
-                    Q[init+a2_index][init+a1_index] = -p/2
-                end
-            end
-        end
         ancilla_init = n_tess*edges_vars
         ancilla_vars = length(possible_ancilla)
         a_init = ancilla_init + (t_index-1)*ancilla_vars
@@ -32,27 +18,30 @@ function r1(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
             pos_e1 = findfirst(item -> item == (x,y),possible_edges)
             pos_e2 = findfirst(item -> item == (x,z),possible_edges)
             pos_e3 = findfirst(item -> item == (y,z),possible_edges)
-            e1_signal = (edges[x][y] == 1) ? -1 : 1
-            e2_signal = (edges[x][z] == 1) ? -1 : 1
-            e3_signal = (edges[y][z] == 1) ? -1 : 1
-            #Penalidade por escolher todos os 3 vértices
-            Q[a_init+a_index][a_init+a_index] = 1
-            #Penalidade para cada aresta da tripla
-            # Q[a_init+a_index][init+pos_e2] = -2 
-            # Q[a_init+a_index][init+pos_e1] = -2 
-            # Q[a_init+a_index][init+pos_e3] = 1
-            Q[init+pos_e1][a_init+a_index] = -2 
-            Q[init+pos_e2][a_init+a_index] = -2 
-            Q[init+pos_e3][a_init+a_index] = 1 
-            #Penalidade para cada par de aresta
-            Q[init+pos_e3][init+pos_e3] -= 1
-            Q[init+pos_e1][init+pos_e2] += 2
-            Q[init+pos_e2][init+pos_e1] += 2
-            # Q[init+pos_e1][init+pos_e3] = p/2
-            # Q[init+pos_e2][init+pos_e3] = p/2
-            # Q[init+pos_e3][init+pos_e1] = p/2
-            # Q[init+pos_e3][init+pos_e2] = p/2
-            
+            # Penalidade auxiliar para a variável a mais
+            Q[init+pos_e1][init+pos_e2] += p/2
+            Q[init+pos_e1][a_init+a_index] += -2*p
+            Q[init+pos_e2][a_init+a_index] += -2*p
+            Q[a_init+a_index][a_init+a_index] = 3*p
+            # Escolher 2 arestas apenas
+            Q[init+pos_e1][init+pos_e2] += p/2
+            Q[init+pos_e1][init+pos_e3] += p/2
+            Q[init+pos_e2][init+pos_e3] += p/2
+            # Escolher par com inexistente
+            if edges[x][y] == 0
+                Q[init+pos_e1][init+pos_e2] += p
+                Q[init+pos_e1][init+pos_e3] += p
+            end
+            if edges[x][z] == 0
+                Q[init+pos_e1][init+pos_e2] += p
+                Q[init+pos_e2][init+pos_e3] += p
+            end
+            if edges[y][z] == 0
+                Q[init+pos_e2][init+pos_e3] += p
+                Q[init+pos_e1][init+pos_e3] += p
+            end
+            #Penalidade por escolher todas as arestas
+            Q[init+pos_e3][a_init+a_index] += -3*p
         end
     end
 end
@@ -68,8 +57,9 @@ function r2(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
                     # Penalidade por escolher não existente
                     Q[init+index][init+index] += p
                 else
+                    # Penalidade por escolher existente
                     Q[init+index][init+index] += -p
-                    for t_aux = 1:n_tess
+                    for t_aux = t_index+1:n_tess
                         if t_aux != t_index
                             t_init = (t_aux-1) * edges_vars
                             #Penalidade por escolher existente em alguma tesselação
@@ -96,6 +86,13 @@ function Q(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64)
     return reduce(hcat, Q)',size
 end
 
+# nodes = 3
+# #square with diagonal (1,3) and not (2,4)
+# edges = [
+#     [0,1,0],
+#     [1,0,0],
+#     [0,0,0],
+# ]
 nodes = 4
 #square with diagonal (1,3) and not (2,4)
 edges = [
@@ -117,23 +114,38 @@ q, vars = Q(nodes,edges,n_tess)
 
 show(stdout, "text/plain", q)
 
+# q = [
+#      [1,-1,0,-1],
+#      [0,0,0,1],
+#      [0,0,1,-1],
+#      [0,0,0,0],
+#     ]
+# q = reduce(hcat, q)'
+# vars=4
+
 @time begin
     model = Model(ExactSampler.Optimizer)
 
     @variable(model, x[1:(vars)], Bin)
-    @objective(model, Min, x' * q * x)
+    @objective(model, Min, 6*p + x' * q * x)
 
     optimize!(model)
 end
 
-xi = value.(x)
-show(xi)
 println()
 possible_edges = [(x,y) for x =1:nodes for y =x+1:nodes]
 edges_vars = length(possible_edges)
 show(possible_edges)
-for i=1:(edges_vars*n_tess)
-    if xi[i] == 1.0
-        println("Edge ", possible_edges[i - (edges_vars*div(i-1,edges_vars))], " in tesselation ", 1+div(i,(edges_vars+1)))
+println()
+for i = 1:2
+    xi = value.(x; result=i)
+    yi = objective_value(model; result=i)
+    println(xi)
+    println("Value:", yi)
+    for i=1:(edges_vars*n_tess)
+        if xi[i] == 1.0
+            println("Edge ", possible_edges[i - (edges_vars*div(i-1,edges_vars))], " in tesselation ", 1+div(i,(edges_vars+1)))
+        end
     end
+    println()
 end

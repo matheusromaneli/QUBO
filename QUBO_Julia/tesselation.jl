@@ -145,6 +145,9 @@ possible_edges = [(x,y) for x =1:nodes for y =x+1:nodes]
 edges_vars = length(possible_edges)
 show(possible_edges)
 println()
+ancilla_bits = [(x,y,z) for x =1:nodes for y =1x+1:nodes for z = y+1:nodes]
+show(ancilla_bits)
+println()
 for i = 1:2
     xi = value.(x; result=i)
     yi = objective_value(model; result=i)

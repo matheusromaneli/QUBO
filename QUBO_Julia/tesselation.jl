@@ -12,7 +12,7 @@ function r1(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
         init = (t_index-1) * edges_vars
         ancilla_init = n_tess*edges_vars
         ancilla_vars = length(possible_ancilla)
-        a_init = ancilla_init + (t_index-1)*ancilla_vars*3
+        a_init = ancilla_init + (t_index-1)*ancilla_vars
         for a_index =1:ancilla_vars
             # Apply restriction: 
             #  2*a*b + 2*a*c + 2*b*c 
@@ -22,9 +22,7 @@ function r1(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
             # -a*z - b*y - c*x
             (a,b,c) = possible_ancilla[a_index]
             #Index of my ancilla bits
-            x_index = a_init + (a_index-1)*3 + 1
-            y_index = a_init + (a_index-1)*3 + 2
-            z_index = a_init + (a_index-1)*3 + 3
+            cur_index = a_init + a_index
             #Index of my edges based on a, b, c variables
             pos_e1 = init+findfirst(item -> item == (a,b),possible_edges)
             pos_e2 = init+findfirst(item -> item == (a,c),possible_edges)
@@ -34,21 +32,21 @@ function r1(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
             Q[pos_e1][pos_e3] += 2*p
             Q[pos_e2][pos_e3] += 2*p
             # Penalidade auxiliar para a variável a mais x
-            Q[pos_e1][x_index] += -2*p
-            Q[pos_e2][x_index] += -2*p
-            Q[x_index][x_index] = 3*p
+            Q[pos_e1][cur_index] += -2*p
+            Q[pos_e2][cur_index] += -2*p
+            Q[cur_index][cur_index] += 3*p
             # Penalidade auxiliar para a variável a mais y
-            Q[pos_e1][y_index] += -2*p
-            Q[pos_e3][y_index] += -2*p
-            Q[y_index][y_index] = 3*p
+            Q[pos_e1][cur_index] += -2*p
+            Q[pos_e3][cur_index] += -2*p
+            Q[cur_index][cur_index] += 3*p
             # Penalidade auxiliar para a variável a mais z
-            Q[pos_e2][z_index] += -2*p
-            Q[pos_e3][z_index] += -2*p
-            Q[z_index][z_index] = 3*p
+            Q[pos_e2][cur_index] += -2*p
+            Q[pos_e3][cur_index] += -2*p
+            Q[cur_index][cur_index] += 3*p
             #Penalidade por escolher todas as arestas
-            Q[pos_e1][z_index] += -p
-            Q[pos_e2][y_index] += -p
-            Q[pos_e3][x_index] += -p
+            Q[pos_e1][cur_index] += -p
+            Q[pos_e2][cur_index] += -p
+            Q[pos_e3][cur_index] += -p
             #Auxiliar da seleção de todas arestas
             #TODO: testar como se fosse C(A(1-B)) para não haver termos unicos 
         end
@@ -64,7 +62,7 @@ function r2(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
                 index = findfirst(item -> item == (line,column),possible_edges)
                 if edges[line][column] == 0
                     # Penalidade por escolher não existente
-                    Q[init+index][init+index] += 2*p
+                    Q[init+index][init+index] += p
                 else
                     # Penalidade por escolher existente
                     Q[init+index][init+index] += -p
@@ -87,7 +85,7 @@ function Q(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64)
     possible_ancilla = [(x,y,z) for x =1:nodes for y =1x+1:nodes for z = y+1:nodes]
     ancilla_vars = length(possible_ancilla)
     
-    size = n_tess * (edges_vars + ancilla_vars*3)
+    size = n_tess * (edges_vars + ancilla_vars)
 
     Q = [[0 for _ = 1:size] for _ = 1:size]
     _r2 = r2(nodes, edges, n_tess, possible_edges,possible_ancilla, Q)
@@ -104,10 +102,10 @@ end
 nodes = 4
 # square with diagonal (1,3) and not (2,4)
 edges = [
-    [0,1,1,1],
-    [1,0,1,1],
-    [1,1,0,1],
-    [1,1,1,0],
+    [0,1,0,1],
+    [1,0,1,0],
+    [0,1,0,1],
+    [1,0,1,0],
 ]
 # square
 # edges = [
@@ -116,7 +114,7 @@ edges = [
 #     [0,1,0,1],
 #     [1,0,1,0],
 # ]
-n_tess = 1
+n_tess = 2
 
 q, vars = Q(nodes,edges,n_tess)
 
@@ -148,7 +146,7 @@ println()
 ancilla_bits = [(x,y,z) for x =1:nodes for y =1x+1:nodes for z = y+1:nodes]
 show(ancilla_bits)
 println()
-for i = 1:2
+for i = 1:4
     xi = value.(x; result=i)
     yi = objective_value(model; result=i)
     println(xi)

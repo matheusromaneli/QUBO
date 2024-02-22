@@ -65,14 +65,35 @@ function r2(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
                 if edges[line][column] == 0
                     # Penalidade por escolher não existente
                     Q[init+index][init+index] += 2*p
-                else
+                end
+            end
+        end
+    end
+end
+         
+function r3(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, possible_edges::Vector{Tuple{Int64, Int64}},possible_ancilla::Vector{Tuple{Int64, Int64, Int64}}, Q::Vector{Vector{Int64}})
+    edges_vars = length(possible_edges)
+    ancilla_vars = length(possible_ancilla)
+    for line = 1:nodes
+        for column = line+1:nodes
+            index = findfirst(item -> item == (line,column),possible_edges)
+            for t_index_i = 1:n_tess
+                init_i = (t_index_i-1) * edges_vars
+                if edges[line][column] == 1
                     # Penalidade por escolher existente
-                    Q[init+index][init+index] += -p
-                    for t_aux = t_index+1:n_tess
-                        if t_aux != t_index
-                            t_init = (t_aux-1) * edges_vars
-                            #Penalidade por escolher existente em alguma tesselação
-                            Q[init+index][t_init+index] += p/2
+                    Q[init_i+index][init_i+index] += -p
+                    for t_index_j = t_index_i+1:n_tess
+                        init_j = (t_index_j-1) * edges_vars
+                        #Penalidade por escolher existente em duas tesselação
+                        Q[init_i+index][init_j+index] += p
+                        init_r3_ancilla = n_tess * (edges_vars + ancilla_vars*3)
+                        for t_index_k = t_index_j+1:n_tess
+                            init_k = (t_index_k-1) * edges_vars
+                            Q[init_i+index][init_j+index] += p
+                            Q[init_i+index][init_r3_ancilla+index] -= 2*p
+                            Q[init_j+index][init_r3_ancilla+index] -= 2*p
+                            Q[init_r3_ancilla+index][init_r3_ancilla+index] += 3*p
+                            Q[init_k+index][init_r3_ancilla+index] -=p
                         end
                     end
                 end
@@ -80,18 +101,23 @@ function r2(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64, poss
         end
     end
 end
-            
+
 function Q(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64)
     possible_edges = [(x,y) for x =1:nodes for y =x+1:nodes]
     edges_vars = length(possible_edges)
-    possible_ancilla = [(x,y,z) for x =1:nodes for y =1x+1:nodes for z = y+1:nodes]
-    ancilla_vars = length(possible_ancilla)
+    r2_ancilla = [(x,y,z) for x =1:nodes for y = x+1:nodes for z = y+1:nodes]
+    r2_ancilla_vars = length(r2_ancilla)
     
-    size = n_tess * (edges_vars + ancilla_vars*3)
+    r3_ancilla = [(x,y,z) for x =1:n_tess for y = x+1:n_tess for z = y+1:n_tess]
+    r3_ancilla_vars = length(r3_ancilla)
+    print(r3_ancilla_vars)
+
+    size = n_tess * (edges_vars + r2_ancilla_vars*3) + r3_ancilla_vars*edges_vars
 
     Q = [[0 for _ = 1:size] for _ = 1:size]
-    _r2 = r2(nodes, edges, n_tess, possible_edges,possible_ancilla, Q)
-    _r1 = r1(nodes, edges, n_tess, possible_edges,possible_ancilla, Q)
+    _r1 = r1(nodes, edges, n_tess, possible_edges, r2_ancilla, Q)
+    _r2 = r2(nodes, edges, n_tess, possible_edges, r2_ancilla, Q)
+    _r3 = r3(nodes, edges, n_tess, possible_edges, r2_ancilla, Q)
     return reduce(hcat, Q)',size
 end
 
@@ -104,9 +130,9 @@ end
 nodes = 4
 # square with diagonal (1,3) and not (2,4)
 edges = [
-    [0,1,1,1],
+    [0,1,0,1],
     [1,0,1,1],
-    [1,1,0,1],
+    [0,1,0,1],
     [1,1,1,0],
 ]
 # square
@@ -116,7 +142,7 @@ edges = [
 #     [0,1,0,1],
 #     [1,0,1,0],
 # ]
-n_tess = 1
+n_tess = 3
 
 q, vars = Q(nodes,edges,n_tess)
 
@@ -130,7 +156,10 @@ show(stdout, "text/plain", q)
 #     ]
 # q = reduce(hcat, q)'
 # vars=4
-
+ancilla_bits = [(x,y,z) for x =1:nodes for y =1x+1:nodes for z = y+1:nodes]
+show(ancilla_bits)
+print(vars)
+exit(1)
 @time begin
     model = Model(ExactSampler.Optimizer)
 

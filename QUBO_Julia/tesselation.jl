@@ -2,6 +2,7 @@ include("./utils.jl")
 using JuMP
 using QUBODrivers
 using BenchmarkTools
+using Graphs
 using .Utils
 
 p = 2

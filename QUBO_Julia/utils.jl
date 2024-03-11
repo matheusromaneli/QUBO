@@ -10,13 +10,35 @@ module RandomGraph
                 end
             end
         end
-        println(edges)
         return edges
     end
     export random_edges
 end
 
 module Utils
+    function node_in_common(nodes_1:: Vector{Int64}, nodes_2:: Vector{Int64})
+        for n in nodes_1
+            for m in nodes_2
+                if n == m
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    function clique_graph_edges(clique_graph:: Vector{Vector{Int64}}, nodes:: Int64)
+        edges::Vector{Tuple{Int64,Int64}} = []
+        for i = 1:nodes
+            for j = i+1:nodes
+                if node_in_common(clique_graph[i], clique_graph[j])
+                    push!(edges, (i,j))
+                end
+            end
+        end
+        return edges
+    end
+
     function vector_to_matrix(m)
         new_vec = []
         for line in m
@@ -37,5 +59,5 @@ module Utils
         end
         return false
     end
-    export has_common, vector_to_matrix
+    export has_common, vector_to_matrix, clique_graph_edges
 end

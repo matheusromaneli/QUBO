@@ -1,4 +1,5 @@
 .vscode
+.venv
 articles
 teste.py
 utils.py

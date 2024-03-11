@@ -111,7 +111,6 @@ function Q(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64)
     
     r3_ancilla = [(x,y,z) for x =1:n_tess for y = x+1:n_tess for z = y+1:n_tess]
     r3_ancilla_vars = length(r3_ancilla)
-    print(r3_ancilla_vars)
 
     size = n_tess * (edges_vars + r2_ancilla_vars*3) + r3_ancilla_vars*edges_vars
 
@@ -119,6 +118,18 @@ function Q(nodes:: Int64 , edges:: Vector{Vector{Int64}} , n_tess:: Int64)
     _r1 = r1(nodes, edges, n_tess, possible_edges, r2_ancilla, Q)
     _r2 = r2(nodes, edges, n_tess, possible_edges, r2_ancilla, Q)
     _r3 = r3(nodes, edges, n_tess, possible_edges, r2_ancilla, Q)
+    println("[")
+    for i= 1:length(Q)
+        print("\t[")
+        for j= 1:length(Q)
+            print(Q[i][j])
+            if j != length(Q)
+                print(", ")
+            end
+        end
+        println("],")
+    end
+    print("]")
     return reduce(hcat, Q)',size
 end
 
@@ -147,7 +158,7 @@ n_tess = 3
 
 q, vars = Q(nodes,edges,n_tess)
 
-show(stdout, "text/plain", q)
+# show(stdout, "text/plain", q)
 
 # q = [
 #      [1,-1,0,-1],
@@ -158,8 +169,10 @@ show(stdout, "text/plain", q)
 # q = reduce(hcat, q)'
 # vars=4
 ancilla_bits = [(x,y,z) for x =1:nodes for y =1x+1:nodes for z = y+1:nodes]
+println()
 show(ancilla_bits)
-print(vars)
+println()
+println(vars)
 exit(1)
 @time begin
     model = Model(ExactSampler.Optimizer)

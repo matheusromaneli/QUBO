@@ -16,6 +16,20 @@ module RandomGraph
 end
 
 module Utils
+
+    function adjacency_to_list(adjacency_matrix:: Vector{Vector{Int64}}):: Vector{Tuple{Int64,Int64}}
+        edges = []
+        nodes = length(adjacency_matrix)
+        for line = 1:nodes
+            for column = line:nodes
+                if adjacency_matrix[line][column] == 1
+                    push!(edges, (line,column))
+                end
+            end
+        end  
+        return edges
+    end
+
     function node_in_common(nodes_1:: Vector{Int64}, nodes_2:: Vector{Int64})
         for n in nodes_1
             for m in nodes_2
@@ -59,5 +73,18 @@ module Utils
         end
         return false
     end
-    export has_common, vector_to_matrix, clique_graph_edges
+
+    function third_edge(edge1:: Tuple{Int64, Int64}, edge2:: Tuple{Int64, Int64}):: Tuple{Int64, Int64}
+        if edge1[1] == edge2[1]
+            return (edge1[2],edge2[2])
+        elseif edge1[1] == edge2[2]
+            return (edge1[2],edge2[1])
+        elseif edge1[2] == edge2[1]
+            return (edge1[1],edge2[2])
+        elseif edge1[2] == edge2[2]
+            return (edge1[1],edge2[1])
+        end
+        return (-1,-1)
+    end
+    export has_common, vector_to_matrix, clique_graph_edges, adjacency_to_list, third_edge
 end

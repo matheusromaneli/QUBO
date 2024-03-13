@@ -1,6 +1,6 @@
 import numpy as np
 
-from qiskit_aer.aerprovider import Aer
+from qiskit import Aer
 from qiskit.optimization.applications.ising import stable_set
 from qiskit.aqua.algorithms import QAOA
 from qiskit.aqua import aqua_globals

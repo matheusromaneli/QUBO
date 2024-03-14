@@ -17,6 +17,20 @@ end
 
 module Utils
 
+    function line_graph(edges_list:: Vector{Tuple{Int64, Int64}}):: Vector{Tuple{Int64, Int64}}
+        result:: Vector{Tuple{Int64, Int64}} = []
+        for pivot_index in eachindex(edges_list)
+            pivot = edges_list[pivot_index]
+            for aux_index in pivot_index+1:length(edges_list)
+                aux = edges_list[aux_index]
+                if has_common(pivot, aux)
+                    push!(result, (pivot_index,aux_index))
+                end
+            end
+        end
+        return result
+    end
+
     function adjacency_to_list(adjacency_matrix:: Vector{Vector{Int64}}):: Vector{Tuple{Int64,Int64}}
         edges = []
         nodes = length(adjacency_matrix)
@@ -86,5 +100,5 @@ module Utils
         end
         return (-1,-1)
     end
-    export has_common, vector_to_matrix, clique_graph_edges, adjacency_to_list, third_edge
+    export has_common, vector_to_matrix, clique_graph_edges, adjacency_to_list, third_edge, line_graph
 end

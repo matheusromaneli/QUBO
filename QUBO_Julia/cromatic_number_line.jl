@@ -60,7 +60,10 @@ clique_graph = maximal_cliques(graph)
 clique_graph_nodes = length(clique_graph)
 clique_graph_edges_result = clique_graph_edges(clique_graph, clique_graph_nodes)
 
-q = Q(clique_graph_nodes, clique_graph_edges_result, n_colors)
+line_graph_nodes = length(clique_graph_edges_result)
+line_graph_edges = line_graph(clique_graph_edges_result)
+
+q = Q(line_graph_nodes, line_graph_edges, n_colors)
 
 show(stdout, "text/plain", q)
 @time begin

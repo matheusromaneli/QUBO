@@ -53,15 +53,8 @@ n_colors = 3
 nodes = 5
 edges = [(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (2, 5), (4, 5)]
 
-graph_edges = Edge.(edges)
-graph = SimpleGraph(graph_edges)
-clique_graph = maximal_cliques(graph)
-
-clique_graph_nodes = length(clique_graph)
-clique_graph_edges_result = clique_graph_edges(clique_graph, clique_graph_nodes)
-
-line_graph_nodes = length(clique_graph_edges_result)
-line_graph_edges = line_graph(clique_graph_edges_result)
+line_graph_nodes = length(edges)
+line_graph_edges = line_graph(edges)
 
 q = Q(line_graph_nodes, line_graph_edges, n_colors)
 

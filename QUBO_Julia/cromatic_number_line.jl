@@ -69,7 +69,7 @@ show(stdout, "text/plain", q)
 @time begin
     model = Model(ExactSampler.Optimizer)
 
-    @variable(model, x[1:(clique_graph_nodes*n_colors)], Bin)
+    @variable(model, x[1:(line_graph_nodes*n_colors)], Bin)
     @objective(model, Min, x' * q * x)
 
     optimize!(model)
